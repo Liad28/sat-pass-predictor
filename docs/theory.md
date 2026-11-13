@@ -45,13 +45,13 @@ SGP4/SDP4 returns satellite position and velocity in the True Equator, Mean Equi
 ### TEME to an Earth-fixed frame
 A practical transformation from TEME to an Earth-fixed frame such as ITRS/ITRF accounts for Earth rotation. In a simplified treatment, this is described as a rotation about the z-axis by the Greenwich Mean Sidereal Time (GMST). Because TEME uses the mean equinox, the equation of the equinoxes is not applied: the rotation angle is GMST, not GAST (Vallado et al., 2006). A more rigorous transformation also accounts for Earth-orientation parameters, including polar motion. Polar motion is often neglected in introductory or lower-accuracy applications, but it matters when higher positional accuracy is required.
 
-In Skyfield, `EarthSatellite.at(t)` performs the TEME conversion internally and returns GCRS; topocentric alt/az is obtained with `(sat - station).at(t).altaz()`.
+In Skyfield, `EarthSatellite.at(t)` runs SGP4 in TEME and rotates the result to GCRS (`sgp4lib.EarthSatellite._at`). The TEME rotation is built as $R_z(\mathrm{GMST}-\mathrm{GAST})\,M$, where $M$ is the precession–nutation matrix: TEME shares the true equator of date but its x-axis points to the mean equinox. The equation of the equinoxes (up to ~17″) corresponds to ~0.5 km at ISS orbital radius, so the distinction is not negligible. The station is also expressed in GCRS, the difference vector $\vec\rho$ is formed there, and `altaz()` finally rotates it into the local horizon frame; this is equivalent to the ITRS-based chain described above, since both vectors are expressed in the same frame before subtraction.
 
 ### Earth-fixed coordinates to the local ENU frame
 Let the observer’s geodetic latitude, longitude, and height be $\phi$, $\lambda$, and $h$. The observer’s Earth-fixed position is $\mathbf r_s$, computed using the WGS84 reference ellipsoid. If the satellite Earth-fixed position is $\mathbf r_{\mathrm{sat}}$, the relative position vector from the observer to the satellite is:
 
 $$
-\boldsymbol{\rho}=\mathbf r_{\mathrm{sat}}-\mathbf r_s
+\vec{\rho}=\mathbf r_{\mathrm{sat}}-\mathbf r_s
 $$
 
 The local East-North-Up (ENU) unit vectors, expressed in Earth-fixed Cartesian coordinates, are:
@@ -71,13 +71,13 @@ $$
 The elevation angle is obtained by projecting the relative vector onto the local Up direction:
 
 $$
-\mathrm{el}=\arcsin\left(\frac{\boldsymbol{\rho}\cdot\mathbf U}{|\boldsymbol{\rho}|}\right)
+\mathrm{el}=\arcsin\left(\frac{\vec{\rho}\cdot\mathbf U}{|\vec{\rho}|}\right)
 $$
 
 The azimuth, measured clockwise from North, is:
 
 $$
-\mathrm{az}=\operatorname{atan2}(\boldsymbol{\rho}\cdot\mathbf E,\ \boldsymbol{\rho}\cdot\mathbf N)\ \bmod\ 360^\circ
+\mathrm{az}=\operatorname{atan2}(\vec{\rho}\cdot\mathbf E,\ \vec{\rho}\cdot\mathbf N)\ \bmod\ 360^\circ
 $$
 
 Here $\phi$ is the geodetic latitude, not the geocentric latitude. The local Up direction is normal to the WGS84 ellipsoid; it is not exactly the radial direction from Earth’s centre. The difference can reach approximately 0.19° at mid-latitudes.
