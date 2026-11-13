@@ -34,3 +34,4 @@ def test_range_physical(iss_tlv_24h):
     _, _, rng = iss_tlv_24h
     # min ~ orbit altitude (~415 km, overhead); max ~ R_E + r_orbit (~13,150 km, opposite side)
     assert np.all((rng > 300) & (rng < 13_500))
+
